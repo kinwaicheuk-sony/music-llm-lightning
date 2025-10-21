@@ -1,4 +1,4 @@
-# Music LLM Lightning: Finetuning LLMs for Music Captioning
+# Music LLM Lightning: Finetuning LLMs for Music Understanding
 
 A PyTorch Lightning-based framework for finetuning Large Language Models (LLMs) on music captioning tasks. This project enables audio-to-text generation by connecting audio encoders to pretrained language models through trainable adapter modules.
 
@@ -57,6 +57,7 @@ The project uses the Song Describer dataset from HuggingFace.
 ```bash
 # Download and extract dataset
 bash scripts/fetch_data.sh
+python mllm/preprocessing/song_describer.py
 ```
 
 This will download audio files and JSON metadata to the `./data` directory.
