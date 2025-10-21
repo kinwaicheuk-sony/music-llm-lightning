@@ -11,6 +11,11 @@ def setup_tokenizer(model_path, cache_dir=None):
     if not hasattr(tokenizer, "start_of_audio"):
         tokenizer.start_of_audio = "<|vision_start|>" # we use Qwen Vision Start token for audio, for bypass vocabulary expansion
         print("tokenizer.start_of_audio: ", tokenizer.start_of_audio)
+    if not hasattr(tokenizer, "eos_token"):
+        tokenizer.eos_token = "<|im_end|>"
+        print("tokenizer.eos_token: ", tokenizer.eos_token)
+    if tokenizer.eos_token == tokenizer.pad_token:
+        raise ValueError("tokenizer.eos_token and tokenizer.pad_token are the same, It make infinite generation")
     return tokenizer
 
 def setup_llm(model_path, attn_implementation, cache_dir, dtype):

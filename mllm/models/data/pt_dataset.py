@@ -13,6 +13,7 @@ class AudioTextDataset(Dataset):
         self.tokenizer = setup_tokenizer(model_path)
         self.start_of_audio = self.tokenizer.start_of_audio # we use Qwen Vision Start token for audio, for bypass vocabulary expansion
         self.instruction = "Describe the music in detail."
+        self.eos_token = self.tokenizer.eos_token
         self.metadata = self._load_metadata()
 
     def __len__(self):
@@ -42,7 +43,7 @@ class AudioTextDataset(Dataset):
         row = self.metadata[idx]
         audio, sr = load_audio(os.path.join(self.data_dir, "audio", row["audio_path"]))
         input_text = self._apply_chat_template(instruction = self.instruction)
-        output_text = row['text']
+        output_text = row['text'] + self.eos_token
         return {
             "input_text": input_text,
             "output_text": output_text,

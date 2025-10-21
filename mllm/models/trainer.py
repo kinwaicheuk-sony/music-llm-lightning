@@ -1,4 +1,5 @@
 import os
+import random
 import json
 import datetime
 from omegaconf import OmegaConf
@@ -63,7 +64,7 @@ class LMTrainingWrapper(pl.LightningModule):
         if self.model_config.apply_lora:
             self.apply_lora()
         self.validation_step_outputs = []
-        self.test_step_outputs = []
+        self.inference_data = {}
 
     def loss_fn(self, logits, labels):
         return nn.functional.cross_entropy(
@@ -195,7 +196,7 @@ class LMTrainingWrapper(pl.LightningModule):
         self.log("train_loss", loss, sync_dist=True, prog_bar=True)
         return loss
 
-    def generation_monitar(self, batch, batch_idx):
+    def generation_monitoring(self, batch, global_step):
         input_tokens = self.tokenizer(
             batch['input_text'], # instruction
             return_tensors="pt",
@@ -211,7 +212,7 @@ class LMTrainingWrapper(pl.LightningModule):
         outputs = self.lm.generate(
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
-            max_new_tokens=self.max_length,
+            max_new_tokens=128, # because song describer case
             num_return_sequences=1,
             do_sample=True,
             temperature=0.7,
@@ -219,22 +220,26 @@ class LMTrainingWrapper(pl.LightningModule):
         )
         output_texts = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
         os.makedirs(f"{self.expdir}/monitor", exist_ok=True)
-        with open(f"{self.expdir}/monitor/{batch_idx}.txt", "a") as f:
-            f.write(output_texts[0])
+        with open(f"{self.expdir}/monitor/{global_step}.json", "w") as f:
+            json.dump({"input": batch['input_text'], "output": output_texts[0]}, f, indent=2)
         return output_texts
 
     @torch.no_grad()
     def validation_step(self, batch, batch_idx):
-        print(f"Validation step {batch_idx}")
-        output_texts = self.generation_monitar(batch, batch_idx)
         loss = self.forward_pass(batch)
         self.log("val_loss", loss, sync_dist=True)
         # Store the loss in the outputs dictionary
         self.validation_step_outputs = getattr(self, "validation_step_outputs", [])
         self.validation_step_outputs.append({"val_loss": loss})
+        # Store the inference data
+        self.inference_data = getattr(self, "inference_data", [])
+        random_idx = random.randint(0, len(batch['input_text']) - 1)
+        self.inference_data = {"input_text": batch['input_text'][random_idx:random_idx+1], "audio": batch['audio'][random_idx:random_idx+1]}
         return {"val_loss": loss}
 
     def on_validation_epoch_end(self):
+        global_step = self.global_step
+        output_texts = self.generation_monitoring(self.inference_data, global_step)
         # Calculate average validation loss using stored outputs
         val_loss = torch.stack([x["val_loss"] for x in self.validation_step_outputs]).mean()
         # Calculate perplexity
@@ -242,6 +247,7 @@ class LMTrainingWrapper(pl.LightningModule):
         self.log("mean_val_loss", val_loss, sync_dist=True)
         # Clear the outputs to free memory
         self.validation_step_outputs = []
+        self.inference_data = {}
         if self.model_config.save_adapter:
             weight_dict = self.adapter.state_dict()
             save_weight_dict = weight_dict.copy()
