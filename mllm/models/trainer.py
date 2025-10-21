@@ -136,19 +136,19 @@ class LMTrainingWrapper(pl.LightningModule):
         batch_labels[pad_mask] = -100  # Replace pad tokens with -100
         return batch_embeds[:,:self.max_length], batch_attention_mask[:,:self.max_length], batch_labels[:,:self.max_length] # for training stability
 
-    def inference_multimodal_embedding(self, input_ids, input_attention_mask, z):
+    def inference_multimodal_embedding(self, input_ids, input_attention_mask, z_audio):
         audio_token_id = torch.tensor([self.audio_token_id], device=self.device)
         audio_insert_index = torch.where(input_ids == audio_token_id)[1].tolist()
         if self.model_config.apply_lora:
             inputs_embeds = self.lm.model.model.embed_tokens(input_ids).to(self.device)
         else:
             inputs_embeds = self.lm.model.embed_tokens(input_ids).to(self.device)
-        audio_attention_mask = torch.ones(z.shape[:2], device=self.device)
+        audio_attention_mask = torch.ones(z_audio.shape[:2], device=self.device)
         batch_embeds = []
         batch_attention_mask = []
         for batch_idx, audio_insert_idx in enumerate(audio_insert_index):
-            embeds = torch.cat([inputs_embeds[batch_idx, :audio_insert_idx], z[batch_idx, :], inputs_embeds[batch_idx, audio_insert_idx+1:], think_token_emb[batch_idx, :]], dim=0)
-            attention_mask = torch.cat([input_attention_mask[batch_idx, :audio_insert_idx], audio_attention_mask[batch_idx, :], input_attention_mask[batch_idx, audio_insert_idx+1:], thunk_token_attention_mask[batch_idx, :]], dim=0)
+            embeds = torch.cat([inputs_embeds[batch_idx, :audio_insert_idx], z_audio[batch_idx, :], inputs_embeds[batch_idx, audio_insert_idx+1:]], dim=0)
+            attention_mask = torch.cat([input_attention_mask[batch_idx, :audio_insert_idx], audio_attention_mask[batch_idx, :], input_attention_mask[batch_idx, audio_insert_idx+1:]], dim=0)
             batch_embeds.append(embeds)
             batch_attention_mask.append(attention_mask)
         batch_embeds = torch.stack(batch_embeds)
@@ -195,7 +195,7 @@ class LMTrainingWrapper(pl.LightningModule):
         self.log("train_loss", loss, sync_dist=True, prog_bar=True)
         return loss
 
-    def generation_step(self, batch):
+    def generation_monitar(self, batch, batch_idx):
         input_tokens = self.tokenizer(
             batch['input_text'], # instruction
             return_tensors="pt",
@@ -204,7 +204,7 @@ class LMTrainingWrapper(pl.LightningModule):
         ).to(self.device)
         input_ids = input_tokens.input_ids
         input_attention_mask = input_tokens.attention_mask
-        z_audio = self.get_audio_embedding(batch['audio'])
+        z_audio = self.get_audio_embedding(batch['audio'].to(self.dtype))
         inputs_embeds, attention_mask = self.inference_multimodal_embedding(
             input_ids, input_attention_mask, z_audio
         )
@@ -218,12 +218,15 @@ class LMTrainingWrapper(pl.LightningModule):
             top_p=0.95
         )
         output_texts = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        for output_text in output_texts:
-            print("\n---start generation---")
-            print(output_text)
+        os.makedirs(f"{self.expdir}/monitor", exist_ok=True)
+        with open(f"{self.expdir}/monitor/{batch_idx}.txt", "a") as f:
+            f.write(output_texts[0])
+        return output_texts
 
     @torch.no_grad()
     def validation_step(self, batch, batch_idx):
+        print(f"Validation step {batch_idx}")
+        output_texts = self.generation_monitar(batch, batch_idx)
         loss = self.forward_pass(batch)
         self.log("val_loss", loss, sync_dist=True)
         # Store the loss in the outputs dictionary
