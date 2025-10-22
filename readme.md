@@ -103,6 +103,19 @@ python train.py --config config/default.yaml --gpu 0
 python train.py --config config/default.yaml --resume path/to/checkpoint.ckpt
 ```
 
+### Monitoring
+
+During training inferenc example save in `./exp/llm/default/monitor`
+
+```
+{
+  "input": [
+    "<|im_start|>user\nDescribe the music in detail.<|vision_start|><|im_end|>\n<|im_start|>assistant\n"
+  ],
+  "output": "A smooth jazz rendition of a Christmas song that makes me feel calm and happy."
+}
+```
+
 ### Configuration
 
 Training is configured via YAML files. Key parameters in `config/default.yaml`:
