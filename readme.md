@@ -116,6 +116,29 @@ During training inferenc example save in `./exp/llm/default/monitor`
 }
 ```
 
+### Inference
+
+After training your model, you can use `infer.py` to generate text descriptions from audio files.
+
+#### Basic Usage
+
+Activate the virtual environment and run inference:
+
+```bash
+source .venv/bin/activate
+python infer.py \
+  --ckpt_path ./exp/llm/default/last.ckpt \
+  --ckpt_config_path ./exp/llm/default/config.yaml \
+  --audio_path ./data/audio/93/945193.mp3 \
+  --input_text "Describe the song in detail." \
+  --device cuda
+```
+
+```bash
+This song is electronic, with a synth and drum beat and a melodic synth. It starts with instruments then male vocaals are added.
+```
+
+
 ### Configuration
 
 Training is configured via YAML files. Key parameters in `config/default.yaml`:
