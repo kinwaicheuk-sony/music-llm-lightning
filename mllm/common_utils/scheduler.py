@@ -1,25 +1,29 @@
+"""
+Learning rate schedulers for training.
+"""
 import numpy as np
 import torch
 
 class InverseLR(torch.optim.lr_scheduler._LRScheduler):
-    """Implements an inverse decay learning rate schedule with an optional exponential
-    warmup. When last_epoch=-1, sets initial lr as lr.
+    """
+    Inverse decay learning rate schedule with exponential warmup.
+
+    When last_epoch=-1, sets initial lr as lr.
     inv_gamma is the number of steps/epochs required for the learning rate to decay to
     (1 / 2)**power of its original value.
+
     Args:
-        optimizer (Optimizer): Wrapped optimizer.
-        inv_gamma (float): Inverse multiplicative factor of learning rate decay. Default: 1.
-        power (float): Exponential factor of learning rate decay. Default: 1.
-        warmup (float): Exponential warmup factor (0 <= warmup < 1, 0 to disable)
-            Default: 0.
-        final_lr (float): The final learning rate. Default: 0.
-        last_epoch (int): The index of last epoch. Default: -1.
-        verbose (bool): If ``True``, prints a message to stdout for
-            each update. Default: ``False``.
+        optimizer: Wrapped optimizer
+        inv_gamma: Inverse multiplicative factor of learning rate decay
+        power: Exponential factor of learning rate decay
+        warmup: Exponential warmup factor (0 <= warmup < 1, 0 to disable)
+        final_lr: The final learning rate
+        last_epoch: The index of last epoch
+        verbose: If True, prints a message to stdout for each update
     """
 
-    def __init__(self, optimizer, inv_gamma=1., power=1., warmup=0., final_lr=0.,
-                 last_epoch=-1, verbose=False):
+    def __init__(self, optimizer: torch.optim.Optimizer, inv_gamma: float = 1., power: float = 1.,
+                 warmup: float = 0., final_lr: float = 0., last_epoch: int = -1, verbose: bool = False):
         self.inv_gamma = inv_gamma
         self.power = power
         if not 0. <= warmup < 1:
@@ -36,7 +40,8 @@ class InverseLR(torch.optim.lr_scheduler._LRScheduler):
 
         return self._get_closed_form_lr()
 
-    def _get_closed_form_lr(self):
+    def _get_closed_form_lr(self) -> list[float]:
+        """Compute learning rate in closed form."""
         warmup = 1 - self.warmup ** (self.last_epoch + 1)
         lr_mult = (1 + self.last_epoch / self.inv_gamma) ** -self.power
         return [warmup * max(self.final_lr, base_lr * lr_mult)
@@ -44,24 +49,26 @@ class InverseLR(torch.optim.lr_scheduler._LRScheduler):
 
 
 class LinearWarmupCosineDecay(torch.optim.lr_scheduler._LRScheduler):
-    """Implements linear warmup and cosine decay learning rate schedule.
-    Args:
-        optimizer (Optimizer): Wrapped optimizer.
-        warmup_steps (int): Number of warmup steps. Default: 100
-        total_steps (int): Total number of training steps. Default: 10000
-        min_lr (float): Minimum learning rate. Default: 1e-6
-        last_epoch (int): The index of last epoch. Default: -1
-        verbose (bool): If ``True``, prints a message to stdout for
-            each update. Default: ``False``.
     """
-    def __init__(self, optimizer, warmup_steps=100, total_steps=10000, min_lr=1e-8,
-                 last_epoch=-1, verbose=False):
+    Linear warmup and cosine decay learning rate schedule.
+
+    Args:
+        optimizer: Wrapped optimizer
+        warmup_steps: Number of warmup steps
+        total_steps: Total number of training steps
+        min_lr: Minimum learning rate
+        last_epoch: The index of last epoch
+        verbose: If True, prints a message to stdout for each update
+    """
+    def __init__(self, optimizer: torch.optim.Optimizer, warmup_steps: int = 100, total_steps: int = 10000,
+                 min_lr: float = 1e-8, last_epoch: int = -1, verbose: bool = False):
         self.warmup_steps = warmup_steps
         self.total_steps = total_steps
         self.min_lr = min_lr
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self):
+    def get_lr(self) -> list[float]:
+        """Get current learning rates with warmup and cosine decay."""
         if not self._get_lr_called_within_step:
             import warnings
             warnings.warn("To get the last learning rate computed by the scheduler, "

@@ -1,22 +1,53 @@
+"""
+Configuration and checkpoint utilities.
+"""
 import json
 import torch
 from safetensors.torch import load_file
 import importlib
 
-def load_ckpt_state_dict(ckpt_path):
+def load_ckpt_state_dict(ckpt_path: str) -> dict:
+    """
+    Load checkpoint state dictionary from file.
+
+    Args:
+        ckpt_path: Path to checkpoint file (.safetensors or .pth)
+
+    Returns:
+        State dictionary
+    """
     if ckpt_path.endswith(".safetensors"):
         state_dict = load_file(ckpt_path)
     else:
-        state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)["state_dict"]    
+        state_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)["state_dict"]
     return state_dict
 
-def instantiate_from_config(config, **kwargs):
+def instantiate_from_config(config: dict, **kwargs):
+    """
+    Instantiate object from configuration dictionary.
+
+    Args:
+        config: Configuration dict with 'target' and 'params'
+        **kwargs: Additional keyword arguments
+
+    Returns:
+        Instantiated object
+    """
     return get_obj_from_str(config["target"])(
         **config.get("params", dict()),
         **kwargs
     )
 
-def get_obj_from_str(string):
+def get_obj_from_str(string: str):
+    """
+    Import and return object from module string.
+
+    Args:
+        string: Module path string (e.g., 'torch.nn.Linear')
+
+    Returns:
+        Class or function object
+    """
     module, cls = string.rsplit(".", 1)
     return getattr(importlib.import_module(module, package=None), cls)
 
@@ -28,15 +59,16 @@ def load_ckpt_state_dict(ckpt_path):
     return state_dict
 
 
-def create_optimizer_from_config(optimizer_config, parameters):
-    """Create optimizer from config.
+def create_optimizer_from_config(optimizer_config: dict, parameters) -> torch.optim.Optimizer:
+    """
+    Create optimizer from config.
 
     Args:
-        parameters (iterable): parameters to optimize.
-        optimizer_config (dict): optimizer config.
+        optimizer_config: Optimizer configuration dictionary
+        parameters: Parameters to optimize
 
     Returns:
-        torch.optim.Optimizer: optimizer.
+        Configured optimizer
     """
     optimizer_type = optimizer_config["type"]
     if optimizer_type == "FusedAdam":
@@ -47,15 +79,16 @@ def create_optimizer_from_config(optimizer_config, parameters):
         optimizer = optimizer_fn(parameters, **optimizer_config["config"])
     return optimizer
 
-def create_scheduler_from_config(scheduler_config, optimizer):
-    """Create scheduler from config.
+def create_scheduler_from_config(scheduler_config: dict, optimizer: torch.optim.Optimizer):
+    """
+    Create learning rate scheduler from config.
 
     Args:
-        scheduler_config (dict): scheduler config.
-        optimizer (torch.optim.Optimizer): optimizer.
+        scheduler_config: Scheduler configuration dictionary
+        optimizer: Optimizer instance
 
     Returns:
-        torch.optim.lr_scheduler._LRScheduler: scheduler.
+        Configured scheduler
     """
     if scheduler_config["type"] == "InverseLR":
         scheduler_fn = InverseLR

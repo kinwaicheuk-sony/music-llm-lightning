@@ -1,3 +1,9 @@
+"""
+Training script for music LLM using PyTorch Lightning.
+
+This script loads a configuration file, sets up the data module and model,
+and trains the model using PyTorch Lightning's Trainer with DDP strategy.
+"""
 import argparse, os
 import torch
 import pytorch_lightning as pl
@@ -9,7 +15,15 @@ torch.set_float32_matmul_precision('highest')
 torch.backends.cuda.matmul.allow_tf32 = True
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
+    """
+    Main training function that sets up and runs the training loop.
+    Args:
+        args (argparse.Namespace): Command-line arguments containing:
+            - config (str): Path to the configuration YAML file
+            - gpu (str, optional): GPU ID(s) to use for training
+            - resume (str, optional): Path to checkpoint for resuming training
+    """
     config = OmegaConf.load(args.config)
     os.makedirs(f"{config.lightning.logdir}/{config.project}/{config.lightning.version_name}", exist_ok=True)
     os.system(f"cp {args.config} {config.lightning.logdir}/{config.project}/{config.lightning.version_name}/config.yaml")

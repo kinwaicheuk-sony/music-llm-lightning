@@ -1,8 +1,12 @@
+"""
+Script to download and preprocess song describer dataset.
+"""
 import os
 import json
 from datasets import load_dataset
 
-def main():
+def main() -> None:
+    """Download song describer dataset and save as individual JSON files."""
     dataset = load_dataset("seungheondoh/eval-song_describer", split="original")
     for item in dataset:
         result = {

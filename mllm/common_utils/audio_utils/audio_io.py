@@ -1,9 +1,26 @@
+"""
+Audio I/O utilities for loading and saving audio files.
+"""
 import os
 import numpy as np
 import librosa
 import soundfile as sf
 
-def load_audio(input_path, channel_first=True, random_sample=True, duration=10, target_sr=44100):
+def load_audio(input_path: str, channel_first: bool = True, random_sample: bool = True,
+               duration: int = 10, target_sr: int = 44100) -> tuple[np.ndarray, int]:
+    """
+    Load audio file with optional random cropping and resampling.
+
+    Args:
+        input_path: Path to audio file
+        channel_first: If True, return shape (C, T), else (T, C)
+        random_sample: If True, randomly crop audio
+        duration: Duration in seconds to extract
+        target_sr: Target sample rate
+
+    Returns:
+        Tuple of (audio_array, sample_rate)
+    """
     y, sr = sf.read(input_path)
     if random_sample:
         start_idx = np.random.randint(0, len(y) - int(duration*sr))
@@ -15,7 +32,16 @@ def load_audio(input_path, channel_first=True, random_sample=True, duration=10, 
         sr = target_sr
     return y, sr
 
-def save_audio(data, samplerate, output_path, audio_format="flac"):
+def save_audio(data: np.ndarray, samplerate: int, output_path: str, audio_format: str = "flac") -> None:
+    """
+    Save audio array to file.
+
+    Args:
+        data: Audio array (C, T) or (T, C)
+        samplerate: Sample rate in Hz
+        output_path: Output file path
+        audio_format: Audio format (e.g., 'flac', 'wav')
+    """
     if data.shape[0] == 2 or data.shape[0] == 1:
         data = data.T # (2, N) -> (N, 2)
     sf.write(output_path, data, samplerate, format=audio_format)

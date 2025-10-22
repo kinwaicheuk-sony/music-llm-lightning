@@ -1,6 +1,18 @@
+"""
+Setup functions for language model and tokenizer initialization.
+"""
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
-def setup_tokenizer(model_path, cache_dir=None):
+def setup_tokenizer(model_path: str, cache_dir: str = None) -> AutoTokenizer:
+    """
+    Initialize and configure tokenizer with special tokens.
+    Args:
+        model_path: Path or name of pretrained model
+        cache_dir: Directory to cache model files
+    Returns:
+        Configured tokenizer with special tokens
+    """
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, cache_dir=cache_dir)
     if tokenizer.pad_token is None:
         pad_token = tokenizer.eos_token
@@ -18,7 +30,17 @@ def setup_tokenizer(model_path, cache_dir=None):
         raise ValueError("tokenizer.eos_token and tokenizer.pad_token are the same, It make infinite generation")
     return tokenizer
 
-def setup_llm(model_path, attn_implementation, cache_dir, dtype):
+def setup_llm(model_path: str, attn_implementation: str, cache_dir: str, dtype: torch.dtype) -> tuple:
+    """
+    Load language model and tokenizer.
+    Args:
+        model_path: Path or name of pretrained model
+        attn_implementation: Attention implementation type
+        cache_dir: Directory to cache model files
+        dtype: Data type for model weights
+    Returns:
+        Tuple of (model, tokenizer)
+    """
     tokenizer = setup_tokenizer(model_path, cache_dir)
     lm = AutoModelForCausalLM.from_pretrained(
         model_path,

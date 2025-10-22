@@ -135,7 +135,8 @@ python infer.py \
 ```
 
 ```bash
-This song is electronic, with a synth and drum beat and a melodic synth. It starts with instruments then male vocaals are added.
+This song is electronic, with a synth and drum beat and a melodic synth.
+It starts with instruments then male vocals are added.
 ```
 
 

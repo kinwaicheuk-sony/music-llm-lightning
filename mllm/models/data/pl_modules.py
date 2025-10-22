@@ -1,3 +1,6 @@
+"""
+PyTorch Lightning data module for audio-text datasets.
+"""
 import os
 import torch
 import random
@@ -8,6 +11,7 @@ from torch.utils.data import DataLoader
 from .pt_dataset import AudioTextDataset
 
 class AudioTextDataModule(pl.LightningDataModule):
+    """Lightning data module for managing audio-text data loaders."""
     def __init__(
         self,
         data_dir: str,
@@ -16,6 +20,15 @@ class AudioTextDataModule(pl.LightningDataModule):
         num_workers: int = 8,
         cache_dir: Optional[str] = None,
     ):
+        """
+        Initialize data module.
+        Args:
+            data_dir: Directory containing dataset
+            model_path: Path to tokenizer model
+            batch_size: Batch size for data loaders
+            num_workers: Number of worker processes
+            cache_dir: Cache directory for model files
+        """
         super().__init__()
         self.data_dir = data_dir
         self.model_path = model_path
@@ -26,7 +39,13 @@ class AudioTextDataModule(pl.LightningDataModule):
     def prepare_data(self) -> None:
         """Validate that required files exist."""
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
+        """
+        Setup datasets for training, validation, or testing.
+
+        Args:
+            stage: 'fit', 'test', or None
+        """
         if stage == "fit" or stage is None:
             self.train_dataset = AudioTextDataset(
                 data_dir=self.data_dir,
@@ -49,7 +68,8 @@ class AudioTextDataModule(pl.LightningDataModule):
                 split="test",
             )
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
+        """Create training data loader."""
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -60,7 +80,8 @@ class AudioTextDataModule(pl.LightningDataModule):
             worker_init_fn=self._worker_init_fn if self.num_workers > 0 else None
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
+        """Create validation data loader."""
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
@@ -71,7 +92,8 @@ class AudioTextDataModule(pl.LightningDataModule):
             worker_init_fn=self._worker_init_fn if self.num_workers > 0 else None
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
+        """Create test data loader."""
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
@@ -84,7 +106,12 @@ class AudioTextDataModule(pl.LightningDataModule):
 
     @staticmethod
     def _worker_init_fn(worker_id: int) -> None:
-        """Initialize worker with different random seed."""
+        """
+        Initialize worker with different random seed.
+
+        Args:
+            worker_id: Worker process ID
+        """
         worker_seed = torch.initial_seed() % 2**32
         np.random.seed(worker_seed)
         random.seed(worker_seed)

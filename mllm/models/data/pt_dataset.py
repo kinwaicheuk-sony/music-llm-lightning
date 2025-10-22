@@ -1,3 +1,6 @@
+"""
+PyTorch dataset for audio-text paired data.
+"""
 import os
 import json
 import torch
@@ -6,7 +9,18 @@ from mllm.models.model_setup import setup_tokenizer
 from mllm.common_utils.audio_utils.audio_io import load_audio
 
 class AudioTextDataset(Dataset):
-    def __init__(self, data_dir, model_path, target_duration=10, split="train", cache_dir=None):
+    """Dataset for loading audio files with corresponding text descriptions."""
+    def __init__(self, data_dir: str, model_path: str, target_duration: int = 10,
+                 split: str = "train", cache_dir: str = None):
+        """
+        Initialize audio-text dataset.
+        Args:
+            data_dir: Directory containing audio and json metadata
+            model_path: Path to tokenizer model
+            target_duration: Duration of audio clips in seconds
+            split: Dataset split ('train' or 'test')
+            cache_dir: Cache directory for tokenizer
+        """
         self.data_dir = data_dir
         self.target_duration = target_duration
         self.split = split
@@ -16,10 +30,16 @@ class AudioTextDataset(Dataset):
         self.eos_token = self.tokenizer.eos_token
         self.metadata = self._load_metadata()
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return number of samples in dataset."""
         return len(self.metadata)
 
-    def _load_metadata(self):
+    def _load_metadata(self) -> list:
+        """
+        Load metadata from JSON files.
+        Returns:
+            List of metadata dictionaries
+        """
         metadata = []
         for file in os.listdir(f"{self.data_dir}/json"):
             if file.endswith(".json"):
@@ -31,14 +51,32 @@ class AudioTextDataset(Dataset):
             metadata = metadata[1000:]
         return metadata
 
-    def _apply_chat_template(self, instruction):
+    def _apply_chat_template(self, instruction: str) -> str:
+        """
+        Apply chat template to instruction text.
+
+        Args:
+            instruction: Instruction text
+
+        Returns:
+            Formatted chat template string
+        """
         return self.tokenizer.apply_chat_template(
             [{"role": "user", "content": f"{instruction}{self.start_of_audio}"}],
             add_generation_prompt=True,
             tokenize=False,
         )
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> dict:
+        """
+        Get single sample from dataset.
+
+        Args:
+            idx: Sample index
+
+        Returns:
+            Dictionary with 'input_text', 'output_text', and 'audio'
+        """
         # example: {'id': 1093, 'text': 'A rock song...', 'audio_path': '02/880702.mp3'}
         row = self.metadata[idx]
         audio, sr = load_audio(os.path.join(self.data_dir, "audio", row["audio_path"]))
