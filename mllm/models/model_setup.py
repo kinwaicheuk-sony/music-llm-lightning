@@ -14,6 +14,7 @@ def setup_tokenizer(model_path: str, cache_dir: str = None) -> AutoTokenizer:
         Configured tokenizer with special tokens
     """
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, cache_dir=cache_dir)
+    tokenizer.pad_token = tokenizer.unk_token # quick hack for Mistral tokenizer
     if tokenizer.pad_token is None:
         pad_token = tokenizer.eos_token
         tokenizer.pad_token = pad_token
@@ -21,7 +22,9 @@ def setup_tokenizer(model_path: str, cache_dir: str = None) -> AutoTokenizer:
         tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0]
         print(f"Added pad token: {tokenizer.pad_token}")
     if not hasattr(tokenizer, "start_of_audio"):
-        tokenizer.start_of_audio = "<|vision_start|>" # we use Qwen Vision Start token for audio, for bypass vocabulary expansion
+        tokenizer.start_of_audio = "AUDIO_START" # create a new special token for Mistral 7B
+        tokenizer.add_tokens([tokenizer.start_of_audio])
+        print(tokenizer.encode(tokenizer.start_of_audio))
         print("tokenizer.start_of_audio: ", tokenizer.start_of_audio)
     if not hasattr(tokenizer, "eos_token"):
         tokenizer.eos_token = "<|im_end|>"
@@ -48,4 +51,6 @@ def setup_llm(model_path: str, attn_implementation: str, cache_dir: str, dtype: 
         torch_dtype=dtype,
         attn_implementation=attn_implementation,
     )
+    # hack for Mistral to expand the token embeddings
+    lm.resize_token_embeddings(len(tokenizer))
     return lm, tokenizer

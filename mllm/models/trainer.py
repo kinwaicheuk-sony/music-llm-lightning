@@ -170,6 +170,7 @@ class LMTrainingWrapper(pl.LightningModule):
             Tuple of (batch_embeds, batch_attention_mask, batch_labels)
         """
         audio_token_id = torch.tensor([self.audio_token_id], device=self.device)
+        audio_token_id = audio_token_id[:,2:] # quick hack for Mistral tokenizer producing 3 tokens instead of 1
         audio_insert_index = torch.where(input_ids == audio_token_id)[1].tolist()
         if self.model_config.apply_lora:
             inputs_embeds = self.lm.model.model.embed_tokens(input_ids).to(self.device)
@@ -210,6 +211,7 @@ class LMTrainingWrapper(pl.LightningModule):
             Tuple of (batch_embeds, batch_attention_mask)
         """
         audio_token_id = torch.tensor([self.audio_token_id], device=self.device)
+        audio_token_id = audio_token_id[:,2:] # quick hack for Mistral tokenizer producing 3 tokens instead of 1
         audio_insert_index = torch.where(input_ids == audio_token_id)[1].tolist()
         if self.model_config.apply_lora:
             inputs_embeds = self.lm.model.model.embed_tokens(input_ids).to(self.device)
