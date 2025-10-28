@@ -18,7 +18,7 @@ def load_mel_spec() -> 'MELSpec':
 class MELSpec(torch.nn.Module):
     """Mel-spectrogram audio feature extractor."""
 
-    def __init__(self, sample_rate: int = 44100, n_fft: int = 2048, hop_length: int = int(0.01 * 44100),
+    def __init__(self, sample_rate: int = 44100, n_fft: int = 2048, hop_length: int = int(1 * 44100),
                  n_mels: int = 128, f_min: int = 0, f_max: int = 22050, power: int = 1):
         """
         Initialize mel-spectrogram transform.
